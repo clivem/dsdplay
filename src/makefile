@@ -1,35 +1,39 @@
-CC=gcc
-ARCH = $(shell echo $$HOSTTYPE)
-CFLAGS=-W -Wall -Wstrict-prototypes -O3 -fomit-frame-pointer -pipe
-CFLAGS=-g -W -Wall -Wstrict-prototypes
-DEPS = 
-OBJ = 
-OBJ = $(ARCH)/obj
+CC = gcc
+CFLAGS := -W -Wall -Wstrict-prototypes -O3 -fomit-frame-pointer -pipe
+# CFLAGS := -g -W -Wall -Wstrict-prototypes
+LDFLAGS := 
 
-OBJS = $(OBJ)/dsdplay.o $(OBJ)/dsdinput.o $(OBJ)/dsf.o $(OBJ)/dsdiff.o $(OBJ)/dsd2pcm.o $(OBJ)/dsdoutput.o
+BUILD_DIR = build
 
-BIN = $(ARCH)/dsdplay
+OBJS = $(BUILD_DIR)/dsdplay.o \
+       $(BUILD_DIR)/dsdinput.o \
+       $(BUILD_DIR)/dsf.o \
+       $(BUILD_DIR)/dsdiff.o \
+       $(BUILD_DIR)/dsd2pcm.o \
+       $(BUILD_DIR)/dsdoutput.o
+
+BIN = $(BUILD_DIR)/dsdplay
 
 GLIB = $(shell pkg-config --libs glib-2.0)
 GLIBINC = $(shell pkg-config --cflags glib-2.0)
 
-all: $(OBJ) $(BIN)
+all: $(BUILD_DIR) $(BIN)
 
-$(OBJ)/%.o: %.c
+$(BUILD_DIR)/%.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(GLIBINC)
 
-$(OBJ)/%.o: libdsd/%.c
+$(BUILD_DIR)/%.o: libdsd/%.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(GLIBINC)
 
-$(OBJ)/%.o: dsd2pcm/%.c
+$(BUILD_DIR)/%.o: dsd2pcm/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-$(OBJ):
-	mkdir -p $(OBJ)
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-$(ARCH)/dsdplay: $(OBJS)
-	gcc -o $@ $^ $(CFLAGS) $(GLIB)
+$(BIN): $(OBJS)
+	gcc -o $@ $^ $(LDFLAGS) $(GLIB)
 
 clean:
-	rm -rf $(ARCH)
+	rm -rf $(BUILD_DIR)
 	find . -name \*~ -exec rm {} \;
