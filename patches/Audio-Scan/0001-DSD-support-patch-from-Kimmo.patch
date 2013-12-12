@@ -1,6 +1,56 @@
-diff -ruN Audio-Scan-0.93.orig/include/dsdiff.h Audio-Scan-0.93/include/dsdiff.h
---- Audio-Scan-0.93.orig/include/dsdiff.h	1970-01-01 02:00:00.000000000 +0200
-+++ Audio-Scan-0.93/include/dsdiff.h	2013-08-14 12:19:37.513370224 +0300
+From 005be25b958a63c3ebbd5b2efe3ca933d04ef887 Mon Sep 17 00:00:00 2001
+From: Clive Messer <clive.m.messer@gmail.com>
+Date: Tue, 22 Oct 2013 13:16:40 +0100
+Subject: [PATCH] DSD support patch from Kimmo.
+
+---
+ Scan.xs          |   6 ++
+ include/dsdiff.h |  19 ++++
+ include/dsf.h    |  19 ++++
+ src/dsdiff.c     | 302 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/dsf.c        | 120 ++++++++++++++++++++++
+ 5 files changed, 466 insertions(+)
+ create mode 100644 include/dsdiff.h
+ create mode 100644 include/dsf.h
+ create mode 100644 src/dsdiff.c
+ create mode 100644 src/dsf.c
+
+diff --git a/Scan.xs b/Scan.xs
+index 8fd058b..13e911f 100644
+--- a/Scan.xs
++++ b/Scan.xs
+@@ -32,6 +32,8 @@
+ #include "wav.c"
+ #include "flac.c"
+ #include "wavpack.c"
++#include "dsf.c"
++#include "dsdiff.c"
+ 
+ #include "md5.c"
+ #include "jenkins_hash.c"
+@@ -67,6 +69,8 @@ struct _types audio_types[] = {
+   {"asf", {"wma", "asf", "wmv", 0}},
+   {"wav", {"wav", "aif", "aiff", 0}},
+   {"wvp", {"wv", 0}},
++  {"dsf", {"dsf", 0}},
++  {"dff", {"dff", 0}},
+   {0, {0, 0}}
+ };
+ 
+@@ -81,6 +85,8 @@ static taghandler taghandlers[] = {
+   { "asf", get_asf_metadata, 0, asf_find_frame, 0 },
+   { "wav", get_wav_metadata, 0, 0, 0 },
+   { "wvp", get_ape_metadata, get_wavpack_info, 0 },
++  { "dsf", get_dsf_metadata, 0, 0, 0 },
++  { "dff", get_dsdiff_metadata, 0, 0, 0 },
+   { NULL, 0, 0, 0 }
+ };
+ 
+diff --git a/include/dsdiff.h b/include/dsdiff.h
+new file mode 100644
+index 0000000..36861b0
+--- /dev/null
++++ b/include/dsdiff.h
 @@ -0,0 +1,19 @@
 +/*
 + * This program is free software; you can redistribute it and/or modify
@@ -21,9 +71,11 @@ diff -ruN Audio-Scan-0.93.orig/include/dsdiff.h Audio-Scan-0.93/include/dsdiff.h
 +#define DSDIFF_BLOCK_SIZE 4096
 +
 +int get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
-diff -ruN Audio-Scan-0.93.orig/include/dsf.h Audio-Scan-0.93/include/dsf.h
---- Audio-Scan-0.93.orig/include/dsf.h	1970-01-01 02:00:00.000000000 +0200
-+++ Audio-Scan-0.93/include/dsf.h	2013-08-14 12:19:26.637087116 +0300
+diff --git a/include/dsf.h b/include/dsf.h
+new file mode 100644
+index 0000000..197453c
+--- /dev/null
++++ b/include/dsf.h
 @@ -0,0 +1,19 @@
 +/*
 + * This program is free software; you can redistribute it and/or modify
@@ -44,39 +96,11 @@ diff -ruN Audio-Scan-0.93.orig/include/dsf.h Audio-Scan-0.93/include/dsf.h
 +#define DSF_BLOCK_SIZE 4096
 +
 +int get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
-diff -ruN Audio-Scan-0.93.orig/Scan.xs Audio-Scan-0.93/Scan.xs
---- Audio-Scan-0.93.orig/Scan.xs	2011-09-14 20:31:19.000000000 +0300
-+++ Audio-Scan-0.93/Scan.xs	2013-08-13 13:57:36.546044269 +0300
-@@ -32,6 +32,8 @@
- #include "wav.c"
- #include "flac.c"
- #include "wavpack.c"
-+#include "dsf.c"
-+#include "dsdiff.c"
- 
- #include "md5.c"
- #include "jenkins_hash.c"
-@@ -67,6 +69,8 @@
-   {"asf", {"wma", "asf", "wmv", 0}},
-   {"wav", {"wav", "aif", "aiff", 0}},
-   {"wvp", {"wv", 0}},
-+  {"dsf", {"dsf", 0}},
-+  {"dff", {"dff", 0}},
-   {0, {0, 0}}
- };
- 
-@@ -81,6 +85,8 @@
-   { "asf", get_asf_metadata, 0, asf_find_frame, 0 },
-   { "wav", get_wav_metadata, 0, 0, 0 },
-   { "wvp", get_ape_metadata, get_wavpack_info, 0 },
-+  { "dsf", get_dsf_metadata, 0, 0, 0 },
-+  { "dff", get_dsdiff_metadata, 0, 0, 0 },
-   { NULL, 0, 0, 0 }
- };
- 
-diff -ruN Audio-Scan-0.93.orig/src/dsdiff.c Audio-Scan-0.93/src/dsdiff.c
---- Audio-Scan-0.93.orig/src/dsdiff.c	1970-01-01 02:00:00.000000000 +0200
-+++ Audio-Scan-0.93/src/dsdiff.c	2013-08-14 14:35:07.554258987 +0300
+diff --git a/src/dsdiff.c b/src/dsdiff.c
+new file mode 100644
+index 0000000..5b75737
+--- /dev/null
++++ b/src/dsdiff.c
 @@ -0,0 +1,302 @@
 +/*
 + * This program is free software; you can redistribute it and/or modify
@@ -380,9 +404,11 @@ diff -ruN Audio-Scan-0.93.orig/src/dsdiff.c Audio-Scan-0.93/src/dsdiff.c
 +  
 +  return 0;
 +}
-diff -ruN Audio-Scan-0.93.orig/src/dsf.c Audio-Scan-0.93/src/dsf.c
---- Audio-Scan-0.93.orig/src/dsf.c	1970-01-01 02:00:00.000000000 +0200
-+++ Audio-Scan-0.93/src/dsf.c	2013-08-14 12:19:02.714596937 +0300
+diff --git a/src/dsf.c b/src/dsf.c
+new file mode 100644
+index 0000000..75aec7c
+--- /dev/null
++++ b/src/dsf.c
 @@ -0,0 +1,120 @@
 +/*
 + * This program is free software; you can redistribute it and/or modify
@@ -504,3 +530,6 @@ diff -ruN Audio-Scan-0.93.orig/src/dsf.c Audio-Scan-0.93/src/dsf.c
 +
 +  return 0;
 +}
+-- 
+1.8.3.1
+

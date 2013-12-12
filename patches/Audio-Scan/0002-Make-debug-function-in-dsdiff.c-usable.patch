@@ -1,0 +1,103 @@
+From 60debaf70761d8a74f83e92b73c03075420cb2f4 Mon Sep 17 00:00:00 2001
+From: Jurgen Kramer <gtmkramer@xs4all.nl>
+Date: Sat, 26 Oct 2013 09:59:14 +0200
+Subject: [PATCH] Make debug function in dsdiff.c usable
+
+---
+ src/dsdiff.c | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/src/dsdiff.c b/src/dsdiff.c
+index 5b75737..2b3acde 100644
+--- a/src/dsdiff.c
++++ b/src/dsdiff.c
+@@ -23,7 +23,7 @@
+ #ifdef DEBUG
+ #define DLOG "/tmp/dsdiff.debug"
+ 
+-void DEBUG(FILE *debug, char* fmt, ...) {
++void PDEBUG(FILE *debug, char* fmt, ...) {
+   va_list args;
+   va_start(args,fmt);
+   vfprintf(debug,fmt,args);
+@@ -72,7 +72,7 @@ parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
+       ck_offset += 12;
+ 
+ #ifdef DEBUG
+-      DEBUG(dsdiff->debug, "  diin: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
++      PDEBUG(dsdiff->debug, "  diin: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
+ #endif
+ 
+       if ( !strcmp(chunk_id, "DIAR") ) {
+@@ -121,7 +121,7 @@ parse_prop_chunk(dsdiff_info *dsdiff, uint64_t size)
+       ck_offset += 12;
+ 
+ #ifdef DEBUG
+-      DEBUG(dsdiff->debug, "  prop: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
++      PDEBUG(dsdiff->debug, "  prop: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
+ #endif
+ 
+       if ( !strcmp(chunk_id, "FS  ") ) {
+@@ -161,7 +161,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+ 
+ #ifdef DEBUG
+   dsdiff.debug = fopen(DLOG, "a");
+-  DEBUG(dsdiff.debug, "DSDIFF: %s\n", file);
++  PDEBUG(dsdiff.debug, "DSDIFF: %s\n", file);
+ #endif
+ 
+   file_size = _file_size(infile);
+@@ -207,7 +207,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+       dsdiff.offset += 12;
+ 
+ #ifdef DEBUG
+-      DEBUG(dsdiff.debug, "%s: %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff.offset, chunk_size);
++      PDEBUG(dsdiff.debug, "%s: %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff.offset, chunk_size);
+ #endif
+ 
+       if (!strcmp(chunk_id, "PROP")) {
+@@ -230,7 +230,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+     }
+ 
+ #ifdef DEBUG
+-    DEBUG(dsdiff.debug, "Finished parsing...\n");
++    PDEBUG(dsdiff.debug, "Finished parsing...\n");
+ #endif
+ 
+     if ((flags & DSD_CK) == 0 || (flags & PROP_CK) == 0) {
+@@ -240,10 +240,10 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+     };
+     
+ #ifdef DEBUG
+-    DEBUG(dsdiff.debug, "audio_size: %" PRIu64 "\n", dsdiff.sample_count / 8 * dsdiff.channel_num);
+-    DEBUG(dsdiff.debug, "samplerate: %" PRIu32 "\n", dsdiff.sampling_frequency);
+-    DEBUG(dsdiff.debug, "song_length_ms: %f\n", (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency);
+-    DEBUG(dsdiff.debug, "channels: %" PRIu32 "\n", dsdiff.channel_num);
++    PDEBUG(dsdiff.debug, "audio_size: %" PRIu64 "\n", dsdiff.sample_count / 8 * dsdiff.channel_num);
++    PDEBUG(dsdiff.debug, "samplerate: %" PRIu32 "\n", dsdiff.sampling_frequency);
++    PDEBUG(dsdiff.debug, "song_length_ms: %f\n", (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency);
++    PDEBUG(dsdiff.debug, "channels: %" PRIu32 "\n", dsdiff.channel_num);
+ #endif
+ 
+     my_hv_store( info, "audio_size", newSVuv(dsdiff.sample_count / 8 * dsdiff.channel_num) );
+@@ -263,7 +263,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+     }
+ 
+ #ifdef DEBUG
+-    DEBUG(dsdiff.debug, "Stored info values...\n");
++    PDEBUG(dsdiff.debug, "Stored info values...\n");
+ #endif
+ 
+     if (dsdiff.metadata_offset) {
+@@ -292,7 +292,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+   buffer_free(&buf);
+   
+ #ifdef DEBUG
+-  DEBUG(dsdiff.debug, "Bye!\n");
++  PDEBUG(dsdiff.debug, "Bye!\n");
+   fclose(dsdiff.debug);
+ #endif
+   
+-- 
+1.8.3.1
+

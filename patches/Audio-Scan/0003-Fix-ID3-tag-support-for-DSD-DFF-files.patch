@@ -1,0 +1,34 @@
+From d8ef243aed00029767897c068c1e7389bab9c110 Mon Sep 17 00:00:00 2001
+From: Jurgen Kramer <gtmkramer@xs4all.nl>
+Date: Sat, 26 Oct 2013 19:14:04 +0200
+Subject: [PATCH] Fix ID3 tag support for DSD DFF files
+
+---
+ src/dsdiff.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/dsdiff.c b/src/dsdiff.c
+index 2b3acde..f19ea9a 100644
+--- a/src/dsdiff.c
++++ b/src/dsdiff.c
+@@ -88,7 +88,7 @@ parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
+ 	strncpy(dsdiff->tag_diti_title, (char *)buffer_ptr(dsdiff->buf), count);
+ 	dsdiff->tag_diti_title[count] = '\0';
+       } else if ( !strcmp(chunk_id, "ID3 ") ) {
+-	dsdiff->metadata_offset = dsdiff->offset + ck_offset - 12;
++	dsdiff->metadata_offset = dsdiff->offset + ck_offset;
+       }
+ 
+       ck_offset += chunk_size;
+@@ -213,7 +213,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+       if (!strcmp(chunk_id, "PROP")) {
+ 	flags |= parse_prop_chunk(&dsdiff, chunk_size);
+       } else if (!strcmp(chunk_id, "DIIN")) {
+-	flags |= parse_diin_chunk(&dsdiff, chunk_size);
++	flags |= parse_diin_chunk(&dsdiff, total_size - dsdiff.offset);
+       } else if (!strcmp(chunk_id, "DSD ")) {
+ 	dsdiff.sample_count = 8 * chunk_size / dsdiff.channel_num;
+ 	flags |= DSD_CK;
+-- 
+1.8.3.1
+
