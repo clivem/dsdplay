@@ -1,20 +1,3 @@
-From 005be25b958a63c3ebbd5b2efe3ca933d04ef887 Mon Sep 17 00:00:00 2001
-From: Clive Messer <clive.m.messer@gmail.com>
-Date: Tue, 22 Oct 2013 13:16:40 +0100
-Subject: [PATCH] DSD support patch from Kimmo.
-
----
- Scan.xs          |   6 ++
- include/dsdiff.h |  19 ++++
- include/dsf.h    |  19 ++++
- src/dsdiff.c     | 302 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
- src/dsf.c        | 120 ++++++++++++++++++++++
- 5 files changed, 466 insertions(+)
- create mode 100644 include/dsdiff.h
- create mode 100644 include/dsf.h
- create mode 100644 src/dsdiff.c
- create mode 100644 src/dsf.c
-
 diff --git a/Scan.xs b/Scan.xs
 index 8fd058b..13e911f 100644
 --- a/Scan.xs

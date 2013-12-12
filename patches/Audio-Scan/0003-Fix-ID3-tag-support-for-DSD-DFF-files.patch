@@ -1,12 +1,3 @@
-From d8ef243aed00029767897c068c1e7389bab9c110 Mon Sep 17 00:00:00 2001
-From: Jurgen Kramer <gtmkramer@xs4all.nl>
-Date: Sat, 26 Oct 2013 19:14:04 +0200
-Subject: [PATCH] Fix ID3 tag support for DSD DFF files
-
----
- src/dsdiff.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
 diff --git a/src/dsdiff.c b/src/dsdiff.c
 index 2b3acde..f19ea9a 100644
 --- a/src/dsdiff.c

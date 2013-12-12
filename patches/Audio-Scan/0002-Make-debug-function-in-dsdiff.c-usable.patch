@@ -1,12 +1,3 @@
-From 60debaf70761d8a74f83e92b73c03075420cb2f4 Mon Sep 17 00:00:00 2001
-From: Jurgen Kramer <gtmkramer@xs4all.nl>
-Date: Sat, 26 Oct 2013 09:59:14 +0200
-Subject: [PATCH] Make debug function in dsdiff.c usable
-
----
- src/dsdiff.c | 24 ++++++++++++------------
- 1 file changed, 12 insertions(+), 12 deletions(-)
-
 diff --git a/src/dsdiff.c b/src/dsdiff.c
 index 5b75737..2b3acde 100644
 --- a/src/dsdiff.c
