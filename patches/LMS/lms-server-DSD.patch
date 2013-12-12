@@ -1,15 +1,17 @@
 diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/convert.conf logitechmediaserver-server-7.8.0.1381491322/slimserver/convert.conf
 --- logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/convert.conf	2013-03-02 22:55:32.000000000 +0000
 +++ logitechmediaserver-server-7.8.0.1381491322/slimserver/convert.conf	2013-10-21 15:32:26.689393334 +0100
-@@ -306,3 +306,23 @@
+@@ -306,3 +306,25 @@
  
  spdr spdr * *
  	 -
 +
 +dsf dsf * *
++	# IFD
 +	-
 +
 +dff dff * *
++	# IFD
 +	-
 +
 +##
@@ -149,3 +151,21 @@ diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/
  dtd     dtd             application/xml-dtd             -
  flc     flac,flc,fla    audio/x-flac,audio/flac         audio
  fec     -               audio/x-cue-flac                playlist
+--- logitechmediaserver-server-7.8.0.1386157128/slimserver/Slim/Player/Squeezebox.pm.orig	2013-12-09 14:38:08.080768878 +0000
++++ logitechmediaserver-server-7.8.0.1386157128/slimserver/Slim/Player/Squeezebox.pm	2013-12-09 14:42:45.592599713 +0000
+@@ -750,6 +750,15 @@
+ 		$pcmchannels     = '?';
+ 		$outputThreshold = 0;
+ 
++	} elsif ($format eq 'dff' || $format eq 'dsf') {
++
++		$formatbyte      = 'd';
++		$pcmsamplesize   = '?';
++		$pcmsamplerate   = '?';
++		$pcmendian       = '?';
++		$pcmchannels     = '?';
++		$outputThreshold = 0;
++
+ 	} elsif ( $handler->isa('Slim::Player::Protocols::SqueezePlayDirect') ) {
+ 
+ 		# Format handled by squeezeplay to allow custom squeezeplay protocol handlers
