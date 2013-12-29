@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
   int i, commpipe[2];
   char *filename = NULL, *outfile = "-";
   dsdfile *file;
-  guint64 size = 0; 
   gint64 start = -1, stop = -1;
   guint32 channels, frequency, freq_limit = 0, mins;
   float secs;
@@ -137,16 +136,17 @@ int main(int argc, char *argv[]) {
     
     while ((ibuffer = dsd_read(file))) {
 
-      size += ibuffer->bytes_per_channel;
-
-      dsd_buffer_msb_order(ibuffer);
+	  dsd_buffer_msb_order(ibuffer);
 
       if (halfrate) halfrate_filter(ibuffer, obuffer);
 
-      if (dop)
-	dsd_over_pcm(obuffer, pcmout);
-      else
-	dsd_to_pcm(obuffer, pcmout); // DSD64 to 352.8kHz PCM
+      if (dop) {
+        dsd_over_pcm(obuffer, pcmout);
+        bsize = obuffer->num_channels * ibuffer->bytes_per_channel / 2 * sizeof(guchar) * 3;
+      } else {
+        dsd_to_pcm(obuffer, pcmout); // DSD64 to 352.8kHz PCM
+        bsize = obuffer->num_channels * ibuffer->bytes_per_channel * sizeof(guchar) * 3;
+	  }
 
       if (fwrite(pcmout, 1, bsize, stdout) != bsize) error("write error");
     }
