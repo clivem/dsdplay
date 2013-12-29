@@ -1,36 +1,84 @@
-diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/convert.conf logitechmediaserver-server-7.8.0.1381491322/slimserver/convert.conf
---- logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/convert.conf	2013-03-02 22:55:32.000000000 +0000
-+++ logitechmediaserver-server-7.8.0.1381491322/slimserver/convert.conf	2013-10-21 15:32:26.689393334 +0100
-@@ -306,3 +306,25 @@
+diff --git a/CPAN/arch/5.14/i386-linux-thread-multi-64int/auto/Audio/Scan/Scan.so b/CPAN/arch/5.14/i386-linux-thread-multi-64int/auto/Audio/Scan/Scan.so
+index 24401a9..aec5d10 100755
+Binary files a/CPAN/arch/5.14/i386-linux-thread-multi-64int/auto/Audio/Scan/Scan.so and b/CPAN/arch/5.14/i386-linux-thread-multi-64int/auto/Audio/Scan/Scan.so differ
+diff --git a/CPAN/arch/5.14/i386-linux-thread-multi/auto/Audio/Scan/Scan.so b/CPAN/arch/5.14/i386-linux-thread-multi/auto/Audio/Scan/Scan.so
+index 4932ae8..aec5d10 100755
+Binary files a/CPAN/arch/5.14/i386-linux-thread-multi/auto/Audio/Scan/Scan.so and b/CPAN/arch/5.14/i386-linux-thread-multi/auto/Audio/Scan/Scan.so differ
+diff --git a/Slim/Formats.pm b/Slim/Formats.pm
+index 646b38f..9eb9d9d 100644
+--- a/Slim/Formats.pm
++++ b/Slim/Formats.pm
+@@ -64,6 +64,8 @@ sub init {
+ 		'ape' => 'Slim::Formats::APE',
+ 		'wvp' => 'Slim::Formats::WavPack',
+ 		'ogf' => 'Slim::Formats::OggFLAC',
++		'dff' => 'Slim::Formats::DFF',
++		'dsf' => 'Slim::Formats::DSF',
  
- spdr spdr * *
- 	 -
+ 		# Playlist types
+ 		'asx' => 'Slim::Formats::Playlists::ASX',
+diff --git a/Slim/Formats/DFF.pm b/Slim/Formats/DFF.pm
+new file mode 100644
+index 0000000..c5809f6
+--- /dev/null
++++ b/Slim/Formats/DFF.pm
+@@ -0,0 +1,50 @@
++package Slim::Formats::DFF;
 +
-+dsf dsf * *
-+	# IFD
-+	-
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License,
++# version 2.
 +
-+dff dff * *
-+	# IFD
-+	-
++use strict;
++use Slim::Utils::Log;
 +
-+##
-+## dsdplay DSD (dff) -> PCM (flac)
-+##
-+dff flc * *
-+       # FT:{START=-s %t}U:{END=-e %v}D:{RESAMPLE=-r %d}
-+       [dsdplay] $START$ $END$ $FILE$ $RESAMPLE$
++use base qw(Slim::Formats::DSD);
 +
-+##
-+## dsdplay DSD (dsf) -> PCM (flac)
-+##
-+dsf flc * *
-+       # FT:{START=-s %t}U:{END=-e %v}D:{RESAMPLE=-r %d}
-+       [dsdplay] $START$ $END$ $FILE$ $RESAMPLE$
-diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/Slim/Formats/DSD.pm logitechmediaserver-server-7.8.0.1381491322/slimserver/Slim/Formats/DSD.pm
---- logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/Slim/Formats/DSD.pm	1970-01-01 01:00:00.000000000 +0100
-+++ logitechmediaserver-server-7.8.0.1381491322/slimserver/Slim/Formats/DSD.pm	2013-10-21 15:31:21.598381585 +0100
-@@ -0,0 +1,52 @@
++my $sourcelog = logger('player.source');
++
++sub getInitialAudioBlock {
++	my ($class, $fh, $track) = @_;
++
++	open my $localFh, '<&=', $fh;
++	seek $localFh, 0, 0;
++	
++	my $s = Audio::Scan->scan_fh( dff => $localFh );
++	
++	main::DEBUGLOG && $sourcelog->is_debug && $sourcelog->debug( 'Reading initial audio block: length ' . $s->{info}->{audio_offset} );
++	
++	seek $localFh, 0, 0;
++	read $localFh, my $buffer, $s->{info}->{audio_offset};
++	
++	close $localFh;
++
++	return $buffer;
++}
++
++sub findFrameBoundaries {
++	my ( $class, $fh, $offset, $time ) = @_;
++
++	if ( !defined $fh || !defined $time ) {
++		return 0;
++	}
++
++	open my $localFh, '<&=', $fh;
++	seek $localFh, 0, 0;
++
++	my $s = Audio::Scan->scan_fh( dff => $localFh );
++	my $info = $s->{info};
++
++	close $localFh;
++
++	return $info->{audio_offset} + (int($info->{samplerate} / 8 * $time) * $info->{channels});
++}
++
++1;
+diff --git a/Slim/Formats/DSD.pm b/Slim/Formats/DSD.pm
+new file mode 100644
+index 0000000..0690aa5
+--- /dev/null
++++ b/Slim/Formats/DSD.pm
+@@ -0,0 +1,54 @@
 +package Slim::Formats::DSD;
 +
 +# Copyright (C) 2013 Kimmo <feedback@daphile.com> 
@@ -55,8 +103,10 @@ diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/
 +	my $tags = $s->{tags};
 +	
 +	return unless $info->{song_length_ms};
-+		
-+	$tags->{SIZE}	    = $info->{audio_size};
++
++	# size is the number of bytes to stream = header + all of audio block
++	$tags->{SIZE}	    = $info->{audio_offset} + $info->{audio_size};
++
 +	$tags->{SECS}	    = $info->{song_length_ms} / 1000;
 +	$tags->{RATE}	    = $info->{samplerate};
 +	$tags->{CHANNELS}   = $info->{channels};
@@ -64,18 +114,18 @@ diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/
 +	$tags->{LOSSLESS}   = 1;
 +
 +	if ( $info->{tag_diar_artist} ) { 
-+	        $tags->{ARTIST} = $info->{tag_diar_artist}; 
++		$tags->{ARTIST} = $info->{tag_diar_artist}; 
 +	}
 +	if ( $info->{tag_diti_title} ) {
-+	        $tags->{TITLE} = $info->{tag_diti_title};
++		$tags->{TITLE} = $info->{tag_diti_title};
 +	} 
-+
++	
 +	if ( $info->{id3_version} ) {
-+	        $tags->{TAGVERSION} = $info->{id3_version};
++		$tags->{TAGVERSION} = $info->{id3_version};
 +		Slim::Formats::MP3->doTagMapping($tags);
 +	}
 +	
-+       return $tags;
++	return $tags;
 +}
 +
 +*getCoverArt = \&Slim::Formats::MP3::getCoverArt;
@@ -83,22 +133,123 @@ diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/
 +sub canSeek { 1 }
 +
 +1;
-diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/Slim/Formats.pm logitechmediaserver-server-7.8.0.1381491322/slimserver/Slim/Formats.pm
---- logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/Slim/Formats.pm	2013-03-02 22:55:32.000000000 +0000
-+++ logitechmediaserver-server-7.8.0.1381491322/slimserver/Slim/Formats.pm	2013-10-21 15:26:50.744657869 +0100
-@@ -64,6 +64,8 @@
- 		'ape' => 'Slim::Formats::APE',
- 		'wvp' => 'Slim::Formats::WavPack',
- 		'ogf' => 'Slim::Formats::OggFLAC',
-+		'dff' => 'Slim::Formats::DSD',
-+		'dsf' => 'Slim::Formats::DSD',
+diff --git a/Slim/Formats/DSF.pm b/Slim/Formats/DSF.pm
+new file mode 100644
+index 0000000..94f8e51
+--- /dev/null
++++ b/Slim/Formats/DSF.pm
+@@ -0,0 +1,56 @@
++package Slim::Formats::DSF;
++
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License,
++# version 2.
++
++use strict;
++use Slim::Utils::Log;
++
++use base qw(Slim::Formats::DSD);
++
++my $sourcelog = logger('player.source');
++
++sub getInitialAudioBlock {
++	my ($class, $fh, $track) = @_;
++
++	open my $localFh, '<&=', $fh;
++	seek $localFh, 0, 0;
++	
++	my $s = Audio::Scan->scan_fh( dsf => $localFh );
++	
++	main::DEBUGLOG && $sourcelog->is_debug && $sourcelog->debug( 'Reading initial audio block: length ' . $s->{info}->{audio_offset} );
++	
++	seek $localFh, 0, 0;
++	read $localFh, my $buffer, $s->{info}->{audio_offset};
++	
++	close $localFh;
++
++	return $buffer;
++}
++
++sub findFrameBoundaries {
++	my ( $class, $fh, $offset, $time ) = @_;
++
++	if ( !defined $fh || !defined $time ) {
++		return 0;
++	}
++
++	open my $localFh, '<&=', $fh;
++	seek $localFh, 0, 0;
++
++	my $s = Audio::Scan->scan_fh( dsf => $localFh );
++	my $info = $s->{info};
++
++	close $localFh;
++
++	# reduce total size of audio stream by one sample block when scanning
++	# this will discard the end samples, but is better than playing the padding at the end of the file
++	# a better solution would be to rewrite the audio header with a reduced sample count, but this is more complex..
++	${*$fh}{logicalEndOfStream} -= $s->{info}->{'channels'} * $s->{info}->{'block_size_per_channel'};
++
++	return $info->{audio_offset} + 
++		(int(int($info->{samplerate} / 8 * $time) / $info->{block_size_per_channel}) * $info->{channels} * $info->{block_size_per_channel});
++}
++
++1;
+diff --git a/Slim/Player/Squeezebox.pm b/Slim/Player/Squeezebox.pm
+index dbcf313..ad4fb91 100644
+--- a/Slim/Player/Squeezebox.pm
++++ b/Slim/Player/Squeezebox.pm
+@@ -750,6 +750,15 @@ sub stream_s {
+ 		$pcmchannels     = '?';
+ 		$outputThreshold = 0;
  
- 		# Playlist types
- 		'asx' => 'Slim::Formats::Playlists::ASX',
-diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/strings.txt logitechmediaserver-server-7.8.0.1381491322/slimserver/strings.txt
---- logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/strings.txt	2013-10-11 12:52:09.000000000 +0100
-+++ logitechmediaserver-server-7.8.0.1381491322/slimserver/strings.txt	2013-10-21 15:26:50.754657564 +0100
-@@ -11822,6 +11822,38 @@
++	} elsif ($format eq 'dff' || $format eq 'dsf') {
++
++		$formatbyte      = 'd';
++		$pcmsamplesize   = '?';
++		$pcmsamplerate   = '?';
++		$pcmendian       = '?';
++		$pcmchannels     = '?';
++		$outputThreshold = 0;
++
+ 	} elsif ( $handler->isa('Slim::Player::Protocols::SqueezePlayDirect') ) {
+ 
+ 		# Format handled by squeezeplay to allow custom squeezeplay protocol handlers
+diff --git a/convert.conf b/convert.conf
+index a8b7e74..9a5f2d7 100644
+--- a/convert.conf
++++ b/convert.conf
+@@ -306,3 +306,25 @@ flc flc transcode *
+ 
+ spdr spdr * *
+ 	 -
++
++dsf dsf * *
++	# IFD
++	-
++
++dff dff * *
++	# IFD
++	-
++
++##
++## dsdplay DSD (dff) -> PCM (flac)
++##
++dff flc * *
++       # FT:{START=-s %t}U:{END=-e %v}D:{RESAMPLE=-r %d}
++       [dsdplay] -u $START$ $END$ $FILE$ $RESAMPLE$
++
++##
++## dsdplay DSD (dsf) -> PCM (flac)
++##
++dsf flc * *
++       # FT:{START=-s %t}U:{END=-e %v}D:{RESAMPLE=-r %d}
++       [dsdplay] -u $START$ $END$ $FILE$ $RESAMPLE$
+diff --git a/strings.txt b/strings.txt
+index 6668809..7655f02 100644
+--- a/strings.txt
++++ b/strings.txt
+@@ -11822,6 +11822,38 @@ OGF
  	RU	Ogg FLAC
  	SV	Ogg FLAC
  
@@ -137,10 +288,11 @@ diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/
  MODIFIED
  	CS	Upraveno
  	DA	Ændret
-diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/types.conf logitechmediaserver-server-7.8.0.1381491322/slimserver/types.conf
---- logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/types.conf	2013-03-02 22:55:32.000000000 +0000
-+++ logitechmediaserver-server-7.8.0.1381491322/slimserver/types.conf	2013-10-21 15:26:50.754657564 +0100
-@@ -16,7 +16,9 @@
+diff --git a/types.conf b/types.conf
+index 82d4044..76f48aa 100644
+--- a/types.conf
++++ b/types.conf
+@@ -16,7 +16,9 @@ asx     asx,wax         video/asx,application/asx,application/vnd.ms-asf,video/x
  css     css             text/css                        - 
  cue     cue             audio/x-cue                     playlist 
  cur     -               audio/x-cue-referenced          -
@@ -151,21 +303,3 @@ diff -ur --new-file logitechmediaserver-server-7.8.0.1381491322.orig/slimserver/
  dtd     dtd             application/xml-dtd             -
  flc     flac,flc,fla    audio/x-flac,audio/flac         audio
  fec     -               audio/x-cue-flac                playlist
---- logitechmediaserver-server-7.8.0.1386157128/slimserver/Slim/Player/Squeezebox.pm.orig	2013-12-09 14:38:08.080768878 +0000
-+++ logitechmediaserver-server-7.8.0.1386157128/slimserver/Slim/Player/Squeezebox.pm	2013-12-09 14:42:45.592599713 +0000
-@@ -750,6 +750,15 @@
- 		$pcmchannels     = '?';
- 		$outputThreshold = 0;
- 
-+	} elsif ($format eq 'dff' || $format eq 'dsf') {
-+
-+		$formatbyte      = 'd';
-+		$pcmsamplesize   = '?';
-+		$pcmsamplerate   = '?';
-+		$pcmendian       = '?';
-+		$pcmchannels     = '?';
-+		$outputThreshold = 0;
-+
- 	} elsif ( $handler->isa('Slim::Player::Protocols::SqueezePlayDirect') ) {
- 
- 		# Format handled by squeezeplay to allow custom squeezeplay protocol handlers
