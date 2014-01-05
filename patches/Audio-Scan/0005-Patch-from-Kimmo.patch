@@ -1,0 +1,75 @@
+From 0aa1c428ab2274d529ae06fc1854747d31a6f6e0 Mon Sep 17 00:00:00 2001
+From: Clive Messer <clive.m.messer@gmail.com>
+Date: Sun, 5 Jan 2014 19:41:18 +0000
+Subject: [PATCH] Patch from Kimmo. - The first change is related to DFF ID3
+ support. - The second one is a slight modification (and bug fix) for Adrians
+ DSF   "sample_bytes" read section (sample_bytes = size_of_data_chunk - 12).
+
+---
+ src/dsdiff.c |  7 +++----
+ src/dsf.c    | 13 +++++++++++--
+ 2 files changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/src/dsdiff.c b/src/dsdiff.c
+index 46b7917..8f8728d 100644
+--- a/src/dsdiff.c
++++ b/src/dsdiff.c
+@@ -88,8 +88,6 @@ parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
+ 	dsdiff->tag_diti_title = (char *)malloc(count + 1);
+ 	strncpy(dsdiff->tag_diti_title, (char *)buffer_ptr(dsdiff->buf), count);
+ 	dsdiff->tag_diti_title[count] = '\0';
+-      } else if ( !strcmp(chunk_id, "ID3 ") ) {
+-	dsdiff->metadata_offset = dsdiff->offset + ck_offset;
+       }
+ 
+       ck_offset += chunk_size;
+@@ -216,11 +214,13 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+       if (!strcmp(chunk_id, "PROP")) {
+ 	flags |= parse_prop_chunk(&dsdiff, chunk_size);
+       } else if (!strcmp(chunk_id, "DIIN")) {
+-	flags |= parse_diin_chunk(&dsdiff, total_size - dsdiff.offset);
++	flags |= parse_diin_chunk(&dsdiff, chunk_size);
+       } else if (!strcmp(chunk_id, "DSD ")) {
+ 	dsdiff.sample_count = 8 * chunk_size / dsdiff.channel_num;
+ 	dsdiff.audio_offset = dsdiff.offset;
+ 	flags |= DSD_CK;
++      }	else if ( !strcmp(chunk_id, "ID3 ") ) {
++	dsdiff.metadata_offset = dsdiff.offset;
+       }
+ 
+       if ( flags & ERROR_CK ) {
+@@ -230,7 +230,6 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+       };
+ 
+       dsdiff.offset += chunk_size;
+-      if (flags == (DSD_CK | DIIN_CK | PROP_CK)) break;
+     }
+ 
+ #ifdef DEBUG
+diff --git a/src/dsf.c b/src/dsf.c
+index 6a21699..7d4c98a 100644
+--- a/src/dsf.c
++++ b/src/dsf.c
+@@ -80,8 +80,17 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+       goto out;
+     }
+ 
+-    buffer_consume(&buf, 8);
+-    sample_bytes = buffer_get_int64_le(&buf);
++    buffer_consume(&buf, 4);
++    
++    if ( strncmp( (char *)buffer_ptr(&buf), "data", 4 ) ) {
++      PerlIO_printf(PerlIO_stderr(), "Invalid DSF file: missing data header: %s\n", file);
++      err = -1;
++      goto out;
++    }
++
++    buffer_consume(&buf, 4);
++
++    sample_bytes = buffer_get_int64_le(&buf) - 12;
+ 
+     my_hv_store( info, "audio_offset", newSVuv( 28 + 52 + 12 ) );
+     my_hv_store( info, "audio_size", newSVuv(sample_bytes) );
+-- 
+1.8.4.2
+
