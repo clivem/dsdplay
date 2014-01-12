@@ -1,15 +1,3 @@
-From 0aa1c428ab2274d529ae06fc1854747d31a6f6e0 Mon Sep 17 00:00:00 2001
-From: Clive Messer <clive.m.messer@gmail.com>
-Date: Sun, 5 Jan 2014 19:41:18 +0000
-Subject: [PATCH] Patch from Kimmo. - The first change is related to DFF ID3
- support. - The second one is a slight modification (and bug fix) for Adrians
- DSF   "sample_bytes" read section (sample_bytes = size_of_data_chunk - 12).
-
----
- src/dsdiff.c |  7 +++----
- src/dsf.c    | 13 +++++++++++--
- 2 files changed, 14 insertions(+), 6 deletions(-)
-
 diff --git a/src/dsdiff.c b/src/dsdiff.c
 index 46b7917..8f8728d 100644
 --- a/src/dsdiff.c

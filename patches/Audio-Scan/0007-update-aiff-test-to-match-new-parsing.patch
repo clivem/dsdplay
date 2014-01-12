@@ -1,0 +1,20 @@
+diff --git a/t/aiff.t b/t/aiff.t
+index f3dce2b..dc96a4e 100644
+--- a/t/aiff.t
++++ b/t/aiff.t
+@@ -17,9 +17,9 @@ use Audio::Scan;
+     my $info = $s->{info};
+     my $tags = $s->{tags};
+     
+-    is( $info->{audio_offset}, 46, 'Audio offset ok' );
+-    is( $info->{audio_size}, 1912, 'Audio size ok' );
+-    is( $info->{audio_md5}, '9ed716ae06bcecda77cd1054c5a0c787', 'Audio MD5 ok' );
++    is( $info->{audio_offset}, 54, 'Audio offset ok' );
++    is( $info->{audio_size}, 1904, 'Audio size ok' );
++    is( $info->{audio_md5}, '31f0818c53cc2bb521cf58960cea9821', 'Audio MD5 ok' );
+     is( $info->{bitrate}, 1411200, 'Bitrate ok' );
+     is( $info->{bits_per_sample}, 16, 'Bits/sample ok' );
+     is( $info->{block_align}, 4, 'Block align ok' );
+-- 
+1.8.4.2
+
