@@ -1,0 +1,11 @@
+--- slimserver/Slim/Player/Squeezebox.pm.orig	2014-01-11 18:31:08.190539145 +0000
++++ slimserver/Slim/Player/Squeezebox.pm	2014-01-11 18:32:00.186992027 +0000
+@@ -636,7 +636,7 @@
+ 
+ 		my $track = Slim::Schema->objectForUrl({
+ 			'url' => $params->{url},
+-		});
++		}) || $track;
+ 
+ 		$formatbyte      = 'p';
+ 		$pcmsamplesize   = 1;
