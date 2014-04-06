@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include "types.h"
 #include "libdsd.h"
 #include "../dsd2pcm/dsd2pcm.h"

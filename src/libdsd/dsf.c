@@ -174,11 +174,12 @@ bool dsf_init(dsdfile *file) {
 }
 
 bool dsf_set_start(dsdfile *file, u32_t mseconds) {
+	u64_t skip_blocks, skip_bytes;
   
   if (!file) return false;
 
-  u64_t skip_blocks = (u64_t) file->sampling_frequency * mseconds / (8000 * file->dsf.block_size_per_channel);
-  u64_t skip_bytes = skip_blocks * file->dsf.block_size_per_channel * file->channel_num;
+  skip_blocks = (u64_t) file->sampling_frequency * mseconds / (8000 * file->dsf.block_size_per_channel);
+  skip_bytes = skip_blocks * file->dsf.block_size_per_channel * file->channel_num;
 
   file->sample_offset = skip_blocks * file->dsf.block_size_per_channel;
 
@@ -186,11 +187,12 @@ bool dsf_set_start(dsdfile *file, u32_t mseconds) {
 }
 
 bool dsf_set_stop(dsdfile *file, u32_t mseconds) {
+	u64_t include_blocks, include_bytes;
 
   if (!file) return false;
 
-  u64_t include_blocks = (u64_t)file->sampling_frequency * mseconds / (8000 * file->dsf.block_size_per_channel) + 1;
-  u64_t include_bytes = include_blocks * file->dsf.block_size_per_channel * file->channel_num;
+  include_blocks = (u64_t)file->sampling_frequency * mseconds / (8000 * file->dsf.block_size_per_channel) + 1;
+  include_bytes = include_blocks * file->dsf.block_size_per_channel * file->channel_num;
 
   if (include_bytes < file->datasize) {
     file->sample_stop = include_blocks * file->dsf.block_size_per_channel;
@@ -208,7 +210,7 @@ dsdbuffer *dsf_read(dsdfile *file) {
     return NULL;
 
   if (file->dsf.block_size_per_channel >= (file->sample_stop - file->sample_offset)) {
-    file->buffer.bytes_per_channel = (file->sample_stop - file->sample_offset);
+    file->buffer.bytes_per_channel = (u32_t)(file->sample_stop - file->sample_offset);
     file->eof = true;
   } else {
     file->sample_offset += file->dsf.block_size_per_channel;

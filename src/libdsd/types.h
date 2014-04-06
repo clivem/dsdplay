@@ -29,7 +29,6 @@
 #if defined(linux) || defined (__APPLE__)
 
 #include <sys/types.h>
-#include <stdint.h>
 #include <stdbool.h>
 
 typedef u_int8_t  u8_t;
@@ -52,9 +51,11 @@ typedef __int16 s16_t;
 typedef __int32 s32_t;
 typedef __int64 s64_t;
 
-typedef BOOL bool;
-#define true TRUE
-#define false FALSE
+typedef int bool;
+#define true 1
+#define false 0
+
+#define inline
 
 #endif
 

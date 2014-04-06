@@ -24,8 +24,6 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/wait.h>
 #include <stdlib.h>
 #include <FLAC/stream_encoder.h>
 #include <soxr.h>
@@ -116,7 +114,7 @@ int main(int argc, char *argv[]) {
   channels = dsd_channels(file);
 
 	if (outfile) {
-		if ((ofile = fopen(outfile, "rb")) == NULL) error("could not output file!");
+		if ((ofile = fopen(outfile, "wb")) == NULL) error("could not output file!");
 	} else {
 		ofile = stdout;
 	}
@@ -172,8 +170,8 @@ int main(int argc, char *argv[]) {
 	pcmout1 = (s32_t *)malloc(bsize);
 	if (!pcmout1) error("unable to allocate pcm buffer 1");
   
-	if (start >= 0) dsd_set_start(file, start);
-	if (stop >= 0) dsd_set_stop(file, stop);
+	if (start >= 0) dsd_set_start(file, (u32_t)start);
+	if (stop >= 0) dsd_set_stop(file, (u32_t)stop);
 
 	// create FLAC encoder for output stream
 	encoder = FLAC__stream_encoder_new();

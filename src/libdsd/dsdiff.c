@@ -160,20 +160,22 @@ bool dsdiff_init(dsdfile *file) {
 }
 
 bool dsdiff_set_start(dsdfile *file, u32_t mseconds) {
-  
+  u64_t skip_bytes;
+
   if (!file) return false;
 
   file->sample_offset = (u64_t)file->sampling_frequency * mseconds / 8000;
-  u64_t skip_bytes = file->sample_offset * file->channel_num;
+  skip_bytes = file->sample_offset * file->channel_num;
 
   return dsd_seek(file, skip_bytes, SEEK_CUR);
 }
 
 bool dsdiff_set_stop(dsdfile *file, u32_t mseconds) {
+	u64_t include_samples;
 
   if (!file) return false;
 
-  u64_t include_samples = (u64_t)file->sampling_frequency * mseconds / 8000;
+  include_samples = (u64_t)file->sampling_frequency * mseconds / 8000;
 
   if ((include_samples * file->channel_num) < file->datasize)
     file->sample_stop = include_samples;
@@ -184,14 +186,14 @@ bool dsdiff_set_stop(dsdfile *file, u32_t mseconds) {
 }
 
 dsdbuffer *dsdiff_read(dsdfile *file) {
-  unsigned num_samples;
+  u32_t num_samples;
 
   if (file->eof) return NULL;
 
   if ((file->sample_stop - file->sample_offset) < file->buffer.max_bytes_per_ch)
-    num_samples = file->sample_stop - file->sample_offset;
+    num_samples = (u32_t)(file->sample_stop - file->sample_offset);
   else
-    num_samples = file->buffer.max_bytes_per_ch;
+    num_samples = (u32_t)file->buffer.max_bytes_per_ch;
 
   if (!dsd_read_raw(file->buffer.data, file->channel_num * num_samples, file))
       return NULL;

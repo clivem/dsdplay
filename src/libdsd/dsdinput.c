@@ -45,7 +45,7 @@ dsdfile *dsd_open(const char *name) {
     file->stream = stdin;
     file->canseek = false;
   } else {
-    if ((file->stream = fopen(name, "r")) == NULL) {
+    if ((file->stream = fopen(name, "rb")) == NULL) {
       free(file);
       return NULL;
     }
@@ -107,19 +107,17 @@ bool dsd_read_raw(void *buffer, size_t bytes, dsdfile *file) {
 }
 
 bool dsd_seek(dsdfile *file, s64_t offset, int whence) {
+  u8_t buffer[8192];
+  u64_t read_bytes, tmp;
   
   if (file->canseek) {
-    if (fseek(file->stream, offset, whence) == 0) {
+    if (fseek(file->stream, (long)offset, whence) == 0) {
       file->offset += offset;
       return true;
     } else {
       return false;
     }
   }
-
-  u8_t buffer[8192];
-  size_t read_bytes;
-  size_t tmp;
 
   if (whence == SEEK_CUR)
     read_bytes = offset;
@@ -132,7 +130,7 @@ bool dsd_seek(dsdfile *file, s64_t offset, int whence) {
 
   while (read_bytes > 0) {
     tmp = (read_bytes > sizeof(buffer) ? sizeof(buffer) : read_bytes);
-    if (dsd_read_raw(buffer, tmp, file))
+    if (dsd_read_raw(buffer, (size_t)tmp, file))
       read_bytes -= tmp;
     else
       return false;

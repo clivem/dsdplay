@@ -64,8 +64,8 @@ typedef struct {
 
   dsfinfo dsf;                 // init @ dsf_init
 
-  size_t dataoffset;           // init @ dsf_init or dsdiff_init
-  size_t datasize;             // init @ dsf_init or dsdiff_init
+  u64_t dataoffset;            // init @ dsf_init or dsdiff_init
+  u64_t datasize;              // init @ dsf_init or dsdiff_init
   dsdbuffer buffer;            // 
 
 } dsdfile;
