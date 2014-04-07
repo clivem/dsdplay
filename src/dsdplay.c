@@ -100,7 +100,8 @@ int main(int argc, char *argv[]) {
 				i--;
 				break;
       default:
-				error("Unknown option!");
+				printf("Usage: %s [-o <output file>] [-r <max frequency>] [-s <mins:secs>] [-e <mins:secs>] [-u] <filename>\n", argv[0]);
+				exit(1);
       }
       i++;
     } else {
@@ -190,7 +191,7 @@ int main(int argc, char *argv[]) {
 		soxr_io_spec_t io_spec = soxr_io_spec(SOXR_INT32_I, SOXR_INT32_I);
 		soxr_quality_spec_t q_spec = soxr_quality_spec(SOXR_HQ, 0);
 		soxr_error_t err;
-		io_spec.scale = 0.891251; // -1dB attenuation
+		//io_spec.scale = 0.891251; // -1dB attenuation
 
 		resampler = soxr_create(sample_rate, freq_limit, channels, &err, &io_spec, &q_spec, NULL);
 		if (err) error("error creating resampler");
